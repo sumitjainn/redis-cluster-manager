@@ -1,9 +1,17 @@
-
 #!/bin/bash
 
 REDISBIN="/Users/sumjain/Software/final/redis-cluster"
 NODES_DIR=nodes
-#Usage: ./cluster.sh start|create|stop -h=192.168.1.7 -p=30000 -n=3 -r=1
+
+function usage(){
+    echo "Usage: ./cluster.sh start|create|stop|delete -h=192.168.1.7 -p=30000 -n=3 -r=1"
+    exit 1
+}
+
+if [[ $# -ne 5 ]]; then 
+    usage
+fi    
+
 
 INDEX=0
 for i in "$@"
@@ -29,12 +37,17 @@ else
         DEFAULT=YES
         ;;
         *)
-               # unknown option
+        usage
         ;;
     esac
 fi
 let INDEX=${INDEX}+1
 done
+
+if [[ -z $HOST || -z $HOST || -z $HOST || -z $HOST ]]; then
+      usage
+fi
+
 
 MINNODES=$(( (REPLICAS+1) * 3 )) 
 
@@ -74,6 +87,7 @@ if [ "$COMMAND" == "create" ]; then
     CLUSTERCMD="$REDISBIN/redis-cli --cluster create $CLUSTERSTR --cluster-replicas $REPLICAS"
     echo $CLUSTERCMD
     $CLUSTERCMD
+    sleep 2
     tail -f $NODES_DIR/**/*.log
     exit 0
 fi    
@@ -86,6 +100,15 @@ if [ "$COMMAND" == "start" ]; then
         cd $DIR ; pwd
         rm redis.log
         ls
+        CURRHOST=$(awk -d" " '/cluster-announce-ip/ {print $2}' redis.conf)
+        if [ "$CURRHOST" != "$HOST" ]; then
+            echo "Host changed: CURR: $CURRHOST NEW: $HOST"
+            sed -i {} "s/$CURRHOST/$HOST/g" *.conf
+            #cat *.conf
+        else 
+            echo "Starting with curr host: $CURRHOST"     
+        fi    
+
         CMDD="$REDISBIN/redis-server redis.conf"
         echo "`pwd` $CMDD"
         $CMDD
@@ -98,16 +121,41 @@ if [ "$COMMAND" == "start" ]; then
     exit 0
 fi    
 
-if [ "$COMMAND" == "stop" ]; then
+function stop(){
     ps -ef | grep redis   
     CURR=0
     while [ $((CURR < COUNT)) != "0" ]; do
         DIR=$((PORT+CURR))
         pkill ":$DIR \[cluster\]"
         CURR=$(( CURR + 1 )) 
-        done
-    cd ..    
-    ps -ef | grep redis    
+    done 
+    sleep 1   
+    echo ""
+    ps -ef | grep redis 
+}
+
+function stopAndDelete(){
+    ps -ef | grep redis   
+    CURR=0
+    while [ $((CURR < COUNT)) != "0" ]; do
+        DIR=$((PORT+CURR))
+        echo "Stopping and deleting $DIR"
+        pkill ":$DIR \[cluster\]"
+        rm -rf $NODES_DIR/$DIR
+        CURR=$(( CURR + 1 )) 
+    done  
+    sleep 1
+    echo ""  
+    ps -ef | grep redis 
+}
+
+if [ "$COMMAND" == "stop" ]; then
+    stop   
+    exit 0
+fi  
+
+if [ "$COMMAND" == "delete" ]; then
+    stopAndDelete 
     exit 0
 fi    
 
