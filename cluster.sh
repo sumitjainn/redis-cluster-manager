@@ -62,6 +62,13 @@ echo "start port: $PORT"
 echo "count: $COUNT"
 echo "replicas: $REPLICAS"
 
+# Default case for Linux sed, just use "-i"
+sedi=(-i)
+case "$(uname)" in
+  # For macOS, use two parameters
+  Darwin*) sedi=(-i "")
+esac
+
 #exit 0
 #set -x
 echo "Executing $COMMAND"
@@ -87,7 +94,7 @@ if [ "$COMMAND" == "create" ]; then
     CLUSTERCMD="$REDISBIN/redis-cli --cluster create $CLUSTERSTR --cluster-replicas $REPLICAS"
     echo $CLUSTERCMD
     $CLUSTERCMD
-    sleep 2
+    sleep 5
     tail -f $NODES_DIR/**/*.log
     exit 0
 fi    
@@ -97,20 +104,21 @@ if [ "$COMMAND" == "start" ]; then
     CURR=0
     while [ $((CURR < COUNT)) != "0" ]; do
         DIR=$((PORT+CURR))
-        cd $DIR ; pwd
+        cd $DIR 
+        #pwd
         rm redis.log
-        ls
+        #ls
         CURRHOST=$(awk -d" " '/cluster-announce-ip/ {print $2}' redis.conf)
         if [ "$CURRHOST" != "$HOST" ]; then
             echo "Host changed: CURR: $CURRHOST NEW: $HOST"
-            sed -i {} "s/$CURRHOST/$HOST/g" *.conf
+            sed "${sedi[@]}" -e "s/$CURRHOST/$HOST/g" *.conf
             #cat *.conf
         else 
             echo "Starting with curr host: $CURRHOST"     
         fi    
 
         CMDD="$REDISBIN/redis-server redis.conf"
-        echo "`pwd` $CMDD"
+        #echo "`pwd` $CMDD"
         $CMDD
         cd .. 
         CURR=$(( CURR + 1 )) 
