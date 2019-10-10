@@ -1,7 +1,8 @@
 
 
+NODES_DIR ?= "../src"
 REDISHOST ?= "127.0.0.1"
-PORT ?= 40000
+PORT ?= 30001
 NUM_NODES ?= 3
 RELICAS ?= 0
 
