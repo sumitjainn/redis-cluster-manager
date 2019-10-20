@@ -12,7 +12,7 @@ Clone this repo in Redis home directory
 
 `cd ~/dev/redis-5.0.5`
 
-`git clone git@git.corp.adobe.com:sumjain/redis-cluster.git`
+`git clone git@github.com:sumitjainn/redis-cluster-manager.git`
 
 Or
 
